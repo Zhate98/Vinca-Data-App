@@ -1,0 +1,28 @@
+rules_version = '2';
+
+// Reglas de seguridad de Vinca Data.
+// Principio: cada usuario solo puede leer/escribir SU propio subárbol
+// users/{uid}/**. Todo lo demás está denegado por defecto.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Documento de perfil del usuario y TODAS sus subcolecciones
+    // (gastos, ingresos, ahorro, deudas, suscripciones, config).
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+
+      match /{document=**} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    // Cualquier otra ruta queda bloqueada.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "370036482652",
+    "project_id": "vinca-data",
+    "storage_bucket": "vinca-data.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:370036482652:android:5051baac9e69f4e23a7c99",
+        "android_client_info": {
+          "package_name": "com.vincadata.vinca_data"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "370036482652-74vi9pju39248f622vmhhq879ep9r6mt.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB0VOW4vXpqM7ik3o7FH_k3ozqrfhiusto"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "370036482652-74vi9pju39248f622vmhhq879ep9r6mt.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
