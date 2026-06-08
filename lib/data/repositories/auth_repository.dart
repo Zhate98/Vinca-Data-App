@@ -12,7 +12,9 @@ class AuthRepository {
     GoogleSignIn? googleSignIn,
   })  : _auth = auth ?? FirebaseAuth.instance,
         _db   = firestore ?? FirebaseFirestore.instance,
-        _google = googleSignIn ?? GoogleSignIn();
+        _google = googleSignIn ?? GoogleSignIn(
+          serverClientId: '370036482652-74vi9pju39248f622vmhhq879ep9r6mt.apps.googleusercontent.com',
+        );
 
   final FirebaseAuth _auth;
   final FirebaseFirestore _db;

@@ -1,7 +1,7 @@
 name: vinca_data
 description: "Vinca Data — Finanzas personales. Versión móvil (Flutter) de la plataforma web."
 publish_to: "none"
-version: 1.0.0+1
+version: 1.0.4+5
 
 environment:
   sdk: ">=3.4.0 <4.0.0"
