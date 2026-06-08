@@ -38,9 +38,8 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  # Descomenta cuando añadas los assets de icono/splash:
-  # assets:
-  #   - assets/
+  assets:
+    - assets/
 
 # ── Icono adaptativo (ejecuta: dart run flutter_launcher_icons) ──────────────
 flutter_launcher_icons:

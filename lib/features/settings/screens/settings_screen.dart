@@ -44,6 +44,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       double.tryParse(c.text.replaceAll(',', '.')) ?? 0;
 
   Future<void> _deleteAccount() async {
+    // 1. Confirmación inicial
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -63,9 +64,57 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ],
       ),
     );
-    if (confirm != true) return;
+    if (confirm != true || !mounted) return;
+
+    final controller = ref.read(authControllerProvider.notifier);
+
+    // 2. Re-autenticar (Firebase lo exige si la sesión es antigua)
+    final isGoogle = controller.isGoogleUser;
+    bool reauthed = false;
+
+    if (isGoogle) {
+      // Usuario de Google: re-login con popup de Google
+      reauthed = await controller.reauthWithGoogle();
+    } else {
+      // Usuario de email: pedir contraseña
+      final passCtrl = TextEditingController();
+      if (!mounted) return;
+      reauthed = await showDialog<bool>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Text('Confirma tu contraseña'),
+              content: TextField(
+                controller: passCtrl,
+                obscureText: true,
+                autofocus: true,
+                decoration:
+                    const InputDecoration(labelText: 'Contraseña actual'),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: const Text('Cancelar'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  style: TextButton.styleFrom(foregroundColor: AppColors.red),
+                  child: const Text('Confirmar'),
+                ),
+              ],
+            ),
+          ) ==
+          true;
+      if (reauthed && mounted) {
+        reauthed = await controller.reauthWithEmail(passCtrl.text);
+      }
+      passCtrl.dispose();
+    }
+
+    if (!reauthed || !mounted) return;
+
+    // 3. Borrar cuenta y datos
     try {
-      await ref.read(authControllerProvider.notifier).deleteAccount();
+      await controller.deleteAccount();
       if (context.mounted) context.go('/login');
     } catch (e) {
       if (context.mounted) {

@@ -43,6 +43,11 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
       _run(() => _repo.sendPasswordReset(email));
   Future<void> signOut() => _repo.signOut();
   Future<void> deleteAccount() => _run(_repo.deleteAccount);
+  Future<bool> reauthWithEmail(String password) =>
+      _run(() => _repo.reauthenticateWithEmail(password));
+  Future<bool> reauthWithGoogle() =>
+      _run(() => _repo.reauthenticateWithGoogle());
+  bool get isGoogleUser => _repo.isGoogleUser;
 
   String _friendly(Object e) {
     if (e is FirebaseAuthException) {

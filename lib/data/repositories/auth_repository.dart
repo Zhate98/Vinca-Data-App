@@ -72,6 +72,36 @@ class AuthRepository {
     await _google.signOut();
   }
 
+  /// Re-autentica con email+contraseña antes de deleteAccount()
+  /// cuando Firebase lanza requires-recent-login.
+  Future<void> reauthenticateWithEmail(String password) async {
+    final user = _auth.currentUser;
+    if (user == null || user.email == null) throw const _AuthCancelled();
+    final cred = EmailAuthProvider.credential(
+        email: user.email!, password: password);
+    await user.reauthenticateWithCredential(cred);
+  }
+
+  /// Re-autentica con Google para usuarios que iniciaron sesión con Google.
+  Future<void> reauthenticateWithGoogle() async {
+    final user = _auth.currentUser;
+    if (user == null) throw const _AuthCancelled();
+    final account = await _google.signIn();
+    if (account == null) throw const _AuthCancelled();
+    final gAuth = await account.authentication;
+    final cred = GoogleAuthProvider.credential(
+      accessToken: gAuth.accessToken,
+      idToken: gAuth.idToken,
+    );
+    await user.reauthenticateWithCredential(cred);
+  }
+
+  /// true si el usuario inició sesión con Google.
+  bool get isGoogleUser =>
+      _auth.currentUser?.providerData
+          .any((p) => p.providerId == 'google.com') ??
+      false;
+
   Future<void> _deleteUserData(String uid) async {
     final userRef = _db.collection('users').doc(uid);
     for (final col in
