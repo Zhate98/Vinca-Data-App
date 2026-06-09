@@ -60,7 +60,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text('🌿', style: TextStyle(fontSize: 44)),
+                      Image.asset('assets/logo_sin_fondo.png', height: 80),
                       const SizedBox(height: 8),
                       const Text('Vinca Data',
                           style: TextStyle(

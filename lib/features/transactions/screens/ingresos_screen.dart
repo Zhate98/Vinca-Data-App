@@ -69,7 +69,7 @@ class _IngresosScreenState extends ConsumerState<IngresosScreen> {
                               style: const TextStyle(fontWeight: FontWeight.w600)),
                           subtitle: Text(
                               personas.isNotEmpty
-                                  ? '${i.tipo} · ${Fmt.date(i.fecha)} · ${_resolvePersona(i.persona, myName)}'
+                                  ? '${i.tipo} · ${Fmt.date(i.fecha)} · ${Fmt.resolvePersona(i.persona, myName)}'
                                   : '${i.tipo} · ${Fmt.date(i.fecha)}',
                               style: const TextStyle(
                                   fontSize: 11, color: AppColors.darkMuted)),
@@ -100,10 +100,6 @@ class _IngresosScreenState extends ConsumerState<IngresosScreen> {
     );
   }
 
-  String _resolvePersona(String persona, String myName) {
-    if (myName.isNotEmpty && persona == myName) return 'Yo';
-    return persona;
-  }
 
   void _openForm(BuildContext context, WidgetRef ref, Ingreso? ingreso,
       List<String> personas, String myName) {

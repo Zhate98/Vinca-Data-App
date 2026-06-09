@@ -39,7 +39,6 @@ enum AppSection {
 
 final sectionProvider =
     StateProvider<AppSection>((ref) => AppSection.dashboard);
-final _scaffoldKey = GlobalKey<ScaffoldState>();
 
 class HomeShell extends ConsumerStatefulWidget {
   const HomeShell({super.key});
@@ -52,6 +51,8 @@ class _HomeShellState extends ConsumerState<HomeShell>
   // ── Timeout de sesión ─────────────────────────────────────────────────────
   static const _timeout = Duration(minutes: 2);
   DateTime? _pausedAt;
+
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
 
   // ── Diálogo primera vez ───────────────────────────────────────────────────
   bool _setupDialogShown = false;
@@ -291,7 +292,7 @@ class _SetupDialogContentState extends State<_SetupDialogContent> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text('🌿', style: TextStyle(fontSize: 38)),
+          Image.asset('assets/logo_sin_fondo.png', height: 70),
           const SizedBox(height: 6),
           const Text(
             '¡Bienvenido a Vinca Data!',
@@ -401,12 +402,18 @@ class _SideMenu extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                '🌿 Vinca Data',
-                style: TextStyle(
-                    color: AppColors.teal,
-                    fontSize: 19,
-                    fontWeight: FontWeight.w700),
+              Row(
+                children: [
+                  Image.asset('assets/logo_sin_fondo.png', height: 28),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Vinca Data',
+                    style: TextStyle(
+                        color: AppColors.teal,
+                        fontSize: 19,
+                        fontWeight: FontWeight.w700),
+                  ),
+                ],
               ),
               const SizedBox(height: 4),
               Text(
@@ -420,7 +427,7 @@ class _SideMenu extends ConsumerWidget {
                     const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: isShared
-                      ? AppColors.teal.withOpacity(0.15)
+                      ? AppColors.teal.withValues(alpha: 0.15)
                       : AppColors.darkBorder,
                   borderRadius: BorderRadius.circular(8),
                 ),

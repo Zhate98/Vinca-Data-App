@@ -74,7 +74,7 @@ class DeudasScreen extends ConsumerWidget {
                                   Padding(
                                     padding: const EdgeInsets.only(right: 4),
                                     child: Text(
-                                      _resolvePersona(d.persona, myName),
+                                      Fmt.resolvePersona(d.persona, myName),
                                       style: const TextStyle(
                                           fontSize: 11, color: AppColors.darkMuted),
                                     ),
@@ -112,10 +112,6 @@ class DeudasScreen extends ConsumerWidget {
     );
   }
 
-  String _resolvePersona(String persona, String myName) {
-    if (myName.isNotEmpty && persona == myName) return 'Yo';
-    return persona;
-  }
 
   void _openForm(BuildContext context, WidgetRef ref, Deuda? deuda,
       List<String> personas, String myName) {

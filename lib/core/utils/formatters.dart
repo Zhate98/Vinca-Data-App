@@ -35,4 +35,11 @@ class Fmt {
 
   static String mesLabel(int month, int year) =>
       '${mesesLargos[month - 1]} $year';
+
+  /// Muestra 'Yo' si [persona] coincide con el nombre del usuario actual,
+  /// o el nombre original en caso contrario.
+  static String resolvePersona(String persona, String myName) {
+    if (myName.isNotEmpty && persona == myName) return 'Yo';
+    return persona;
+  }
 }

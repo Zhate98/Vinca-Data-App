@@ -184,7 +184,7 @@ class _SharedSpaceScreenState extends ConsumerState<SharedSpaceScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               decoration: BoxDecoration(
-                color: AppColors.teal.withOpacity(0.1),
+                color: AppColors.teal.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: AppColors.teal),
               ),
@@ -405,7 +405,7 @@ class _SpaceTile extends StatelessWidget {
         leading: CircleAvatar(
           backgroundColor: isActive
               ? AppColors.teal
-              : AppColors.teal.withOpacity(0.15),
+              : AppColors.teal.withValues(alpha: 0.15),
           child: Icon(
             Icons.group,
             color: isActive ? AppColors.darkBg : AppColors.teal,

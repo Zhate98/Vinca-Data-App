@@ -66,7 +66,7 @@ class _GastosScreenState extends ConsumerState<GastosScreen> {
                     moneda: moneda,
                     gasto: g,
                         displayPersona: personas.isNotEmpty
-                            ? _resolvePersona(g.persona, myName)
+                            ? Fmt.resolvePersona(g.persona, myName)
                             : null,
                         onEdit: () => _openForm(context, ref, g, personas, myName),
                         onDelete: () => ref
@@ -83,10 +83,6 @@ class _GastosScreenState extends ConsumerState<GastosScreen> {
     );
   }
 
-  String _resolvePersona(String persona, String myName) {
-    if (myName.isNotEmpty && persona == myName) return 'Yo';
-    return persona;
-  }
 
   void _openForm(BuildContext context, WidgetRef ref, Gasto? gasto,
       List<String> personas, String myName) {

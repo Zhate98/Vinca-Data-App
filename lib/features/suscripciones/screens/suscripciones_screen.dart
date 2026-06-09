@@ -62,7 +62,7 @@ class SuscripcionesScreen extends ConsumerWidget {
                           style: const TextStyle(fontWeight: FontWeight.w600)),
                       subtitle: Text(
                           personas.isNotEmpty
-                              ? '${s.renovacion} · ${s.categoria} · ${_resolvePersona(s.persona, myName)}'
+                              ? '${s.renovacion} · ${s.categoria} · ${Fmt.resolvePersona(s.persona, myName)}'
                               : '${s.renovacion} · ${s.categoria}',
                           style: const TextStyle(fontSize: 11, color: AppColors.darkMuted)),
                       trailing: Row(
@@ -86,10 +86,6 @@ class SuscripcionesScreen extends ConsumerWidget {
     );
   }
 
-  String _resolvePersona(String persona, String myName) {
-    if (myName.isNotEmpty && persona == myName) return 'Yo';
-    return persona;
-  }
 
   void _openForm(BuildContext context, WidgetRef ref, Suscripcion? suscripcion,
       List<String> personas, String myName) {

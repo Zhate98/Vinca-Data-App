@@ -75,7 +75,7 @@ class AhorroScreen extends ConsumerWidget {
                           style: const TextStyle(fontWeight: FontWeight.w600)),
                       subtitle: Text(
                           personas.isNotEmpty
-                              ? '${Fmt.date(a.fecha)} · ${_resolvePersona(a.persona, myName)}'
+                              ? '${Fmt.date(a.fecha)} · ${Fmt.resolvePersona(a.persona, myName)}'
                               : Fmt.date(a.fecha),
                           style: const TextStyle(fontSize: 11, color: AppColors.darkMuted)),
                       trailing: Row(
@@ -99,10 +99,6 @@ class AhorroScreen extends ConsumerWidget {
     );
   }
 
-  String _resolvePersona(String persona, String myName) {
-    if (myName.isNotEmpty && persona == myName) return 'Yo';
-    return persona;
-  }
 
   void _openForm(BuildContext context, WidgetRef ref, Ahorro? ahorro,
       List<String> personas, String myName) {
