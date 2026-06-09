@@ -1,4 +1,5 @@
 # Miscellaneous
+.fuse_hidden*
 *.class
 *.log
 *.pyc
