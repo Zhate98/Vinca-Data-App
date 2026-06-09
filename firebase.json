@@ -1,1 +1,25 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"vinca-data","appId":"1:370036482652:android:5051baac9e69f4e23a7c99","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"vinca-data","configurations":{"android":"1:370036482652:android:5051baac9e69f4e23a7c99","web":"1:370036482652:web:2286fdb1f84224dd3a7c99"}}}}}}
+{
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "vinca-data",
+          "appId": "1:370036482652:android:5051baac9e69f4e23a7c99",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "vinca-data",
+          "configurations": {
+            "android": "1:370036482652:android:5051baac9e69f4e23a7c99",
+            "web": "1:370036482652:web:2286fdb1f84224dd3a7c99"
+          }
+        }
+      }
+    }
+  }
+}

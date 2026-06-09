@@ -6,25 +6,19 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../data/models/suscripcion.dart';
 import '../../../shared/providers/finance_providers.dart';
-import '../../../shared/providers/shared_space_providers.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/kpi_card.dart';
-import '../../auth/providers/auth_providers.dart';
 
 class SuscripcionesScreen extends ConsumerWidget {
   const SuscripcionesScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final async    = ref.watch(suscripcionesProvider);
-    final moneda = ref.watch(currencyProvider);
-    final personas = ref.watch(activeSpacePersonasProvider);
-    final myName   = ref.watch(currentUserProvider)?.displayName ?? '';
-
+    final async = ref.watch(suscripcionesProvider);
     return Scaffold(
       backgroundColor: Colors.transparent,
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _openForm(context, ref, null, personas, myName),
+        onPressed: () => _openForm(context, ref, null),
         icon: const Icon(Icons.add),
         label: const Text('Nueva'),
       ),
@@ -44,8 +38,8 @@ class SuscripcionesScreen extends ConsumerWidget {
                 mainAxisSpacing: 10,
                 childAspectRatio: 1.0,
                 children: [
-                  KpiCard(label: '💶 Mensual', value: Fmt.money(mensual, moneda: moneda), accent: AppColors.pink),
-                  KpiCard(label: '📅 Anual', value: Fmt.money(mensual * 12, moneda: moneda), accent: AppColors.purple),
+                  KpiCard(label: '💶 Mensual', value: Fmt.money(mensual), accent: AppColors.pink),
+                  KpiCard(label: '📅 Anual', value: Fmt.money(mensual * 12), accent: AppColors.purple),
                   KpiCard(label: '📱 Activas', value: '${list.length}', accent: AppColors.teal),
                 ],
               ),
@@ -57,23 +51,20 @@ class SuscripcionesScreen extends ConsumerWidget {
                   Card(
                     margin: const EdgeInsets.only(bottom: 8),
                     child: ListTile(
-                      onTap: () => _openForm(context, ref, s, personas, myName),
+                      onTap: () => _openForm(context, ref, s),
                       title: Text(s.nombre,
                           style: const TextStyle(fontWeight: FontWeight.w600)),
-                      subtitle: Text(
-                          personas.isNotEmpty
-                              ? '${s.renovacion} · ${s.categoria} · ${_resolvePersona(s.persona, myName)}'
-                              : '${s.renovacion} · ${s.categoria}',
+                      subtitle: Text('${s.renovacion} · ${s.categoria}',
                           style: const TextStyle(fontSize: 11, color: AppColors.darkMuted)),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text('${Fmt.money(s.precioMes, moneda: moneda)}/mes',
+                          Text('${Fmt.money(s.precioMes)}/mes',
                               style: const TextStyle(color: AppColors.pink, fontWeight: FontWeight.w700)),
                           IconButton(
                               icon: const Icon(Icons.delete_outline, size: 20, color: AppColors.darkMuted),
                               onPressed: () => ref
-                                  .read(activeFinanceRepositoryProvider)!
+                                  .read(financeRepositoryProvider)!
                                   .deleteSuscripcion(s.id)),
                         ],
                       ),
@@ -86,21 +77,12 @@ class SuscripcionesScreen extends ConsumerWidget {
     );
   }
 
-  String _resolvePersona(String persona, String myName) {
-    if (myName.isNotEmpty && persona == myName) return 'Yo';
-    return persona;
-  }
-
-  void _openForm(BuildContext context, WidgetRef ref, Suscripcion? suscripcion,
-      List<String> personas, String myName) {
+  void _openForm(BuildContext context, WidgetRef ref, Suscripcion? suscripcion) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       builder: (_) => _SuscForm(
         suscripcion: suscripcion,
-        personas: personas,
-        myDisplayName: myName,
-        moneda: ref.read(currencyProvider),
         onSubmit: (s) => suscripcion == null
             ? ref.read(activeFinanceRepositoryProvider)!.addSuscripcion(s)
             : ref.read(activeFinanceRepositoryProvider)!.updateSuscripcion(s),
@@ -110,41 +92,28 @@ class SuscripcionesScreen extends ConsumerWidget {
 }
 
 class _SuscForm extends StatefulWidget {
-  const _SuscForm(
-      {required this.onSubmit,
-      this.suscripcion,
-      required this.personas,
-      required this.myDisplayName,
-      required this.moneda});
+  const _SuscForm({required this.onSubmit, this.suscripcion});
   final Future<void> Function(Suscripcion) onSubmit;
   final Suscripcion? suscripcion;
-  final List<String> personas;
-  final String myDisplayName;
-  final String moneda;
   @override
   State<_SuscForm> createState() => _SuscFormState();
 }
 
 class _SuscFormState extends State<_SuscForm> {
-  final _form    = GlobalKey<FormState>();
+  final _form = GlobalKey<FormState>();
   late final _nombre = TextEditingController(text: widget.suscripcion?.nombre ?? '');
   late final _precio = TextEditingController(
       text: widget.suscripcion != null ? widget.suscripcion!.precioMes.toStringAsFixed(2) : '');
-  late String _categoria  = widget.suscripcion?.categoria  ?? FinanceConstants.categorias.first;
+  late String _categoria = widget.suscripcion?.categoria ?? FinanceConstants.categorias.first;
   late String _renovacion = widget.suscripcion?.renovacion ?? FinanceConstants.renovaciones.first;
-  late String _persona    = _initPersona();
-
-  String _initPersona() {
-    if (widget.personas.isEmpty) return FinanceConstants.personasBase.first;
-    final saved = widget.suscripcion?.persona ?? '';
-    if (saved.isEmpty) return 'Yo';
-    if (widget.myDisplayName.isNotEmpty && saved == widget.myDisplayName) return 'Yo';
-    if (widget.personas.contains(saved)) return saved;
-    return 'Yo';
-  }
+  late String _persona = widget.suscripcion?.persona ?? FinanceConstants.personasBase.first;
 
   @override
-  void dispose() { _nombre.dispose(); _precio.dispose(); super.dispose(); }
+  void dispose() {
+    _nombre.dispose();
+    _precio.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -165,16 +134,18 @@ class _SuscFormState extends State<_SuscForm> {
               TextFormField(
                 controller: _nombre,
                 decoration: const InputDecoration(labelText: 'Nombre'),
-                validator: (v) => (v == null || v.trim().isEmpty) ? 'Requerido' : null,
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Requerido' : null,
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _precio,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: InputDecoration(labelText: widget.moneda == 'USD' ? 'Precio/mes (\$)' : 'Precio/mes (€)'),
+                decoration: const InputDecoration(labelText: 'Precio/mes (€)'),
                 validator: (v) =>
                     double.tryParse((v ?? '').replaceAll(',', '.')) == null
-                        ? 'Número no válido' : null,
+                        ? 'Número no válido'
+                        : null,
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
@@ -196,32 +167,27 @@ class _SuscFormState extends State<_SuscForm> {
                     .toList(),
                 onChanged: (v) => setState(() => _renovacion = v ?? _renovacion),
               ),
-              if (widget.personas.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  value: _persona,
-                  isExpanded: true,
-                  decoration: const InputDecoration(labelText: 'Persona'),
-                  items: widget.personas
-                      .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                      .toList(),
-                  onChanged: (v) => setState(() => _persona = v ?? _persona),
-                ),
-              ],
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: _persona,
+                isExpanded: true,
+                decoration: const InputDecoration(labelText: 'Persona'),
+                items: FinanceConstants.personasBase
+                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                    .toList(),
+                onChanged: (v) => setState(() => _persona = v ?? _persona),
+              ),
               const SizedBox(height: 16),
               FilledButton(
                 onPressed: () async {
                   if (!_form.currentState!.validate()) return;
-                  final personaFinal = (widget.personas.isNotEmpty && _persona == 'Yo')
-                      ? (widget.myDisplayName.isNotEmpty ? widget.myDisplayName : 'Yo')
-                      : _persona;
                   await widget.onSubmit(Suscripcion(
                     id: widget.suscripcion?.id ?? '',
                     nombre: _nombre.text.trim(),
                     precioMes: double.parse(_precio.text.replaceAll(',', '.')),
                     categoria: _categoria,
                     renovacion: _renovacion,
-                    persona: personaFinal,
+                    persona: _persona,
                   ));
                   if (mounted) Navigator.pop(context);
                 },

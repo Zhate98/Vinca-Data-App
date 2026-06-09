@@ -1,19 +1,19 @@
 import 'package:intl/intl.dart';
 
-/// Formateo idéntico al de la web: moneda EUR, locale es-ES, 2 decimales.
 class Fmt {
   Fmt._();
 
-  static final NumberFormat _eur = NumberFormat.currency(
-    locale: 'es_ES',
-    symbol: '€',
-    decimalDigits: 2,
-  );
+  static final _formatters = <String, NumberFormat>{
+    'EUR': NumberFormat.currency(locale: 'es_ES', symbol: '€', decimalDigits: 2),
+    'USD': NumberFormat.currency(locale: 'en_US', symbol: '\$', decimalDigits: 2),
+  };
 
   static final DateFormat _date = DateFormat('dd MMM yyyy', 'es_ES');
-  static final DateFormat _iso = DateFormat('yyyy-MM-dd');
+  static final DateFormat _iso  = DateFormat('yyyy-MM-dd');
 
-  static String money(num? value) => _eur.format(value ?? 0);
+  /// Formatea un monto con la moneda indicada ('EUR' o 'USD').
+  static String money(num? value, {String moneda = 'EUR'}) =>
+      (_formatters[moneda] ?? _formatters['EUR']!).format(value ?? 0);
 
   static String date(DateTime d) => _date.format(d);
 

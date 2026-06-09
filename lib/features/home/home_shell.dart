@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_theme.dart';
 import '../../data/models/user_config.dart';
 import '../../shared/providers/finance_providers.dart';
+import '../../shared/providers/shared_space_providers.dart';
 import '../../shared/providers/theme_provider.dart';
 import '../../shared/widgets/month_selector.dart';
 import '../auth/providers/auth_providers.dart';
@@ -13,6 +15,7 @@ import '../dashboard/screens/dashboard_screen.dart';
 import '../deudas/screens/deudas_screen.dart';
 import '../resumen/screens/resumen_screen.dart';
 import '../settings/screens/settings_screen.dart';
+import '../shared/screens/shared_space_screen.dart';
 import '../suscripciones/screens/suscripciones_screen.dart';
 import '../transactions/screens/gastos_screen.dart';
 import '../transactions/screens/ingresos_screen.dart';
@@ -25,6 +28,7 @@ enum AppSection {
   deudas('💳 Deudas', Icons.credit_card_outlined, Icons.credit_card),
   suscripciones('📱 Suscripciones', Icons.subscriptions_outlined, Icons.subscriptions),
   resumen('📊 Resumen', Icons.bar_chart_outlined, Icons.bar_chart),
+  compartido('👥 Compartido', Icons.group_outlined, Icons.group),
   config('⚙️ Configuración', Icons.settings_outlined, Icons.settings);
 
   const AppSection(this.title, this.icon, this.activeIcon);
@@ -33,7 +37,7 @@ enum AppSection {
   final IconData activeIcon;
 }
 
-final _sectionProvider =
+final sectionProvider =
     StateProvider<AppSection>((ref) => AppSection.dashboard);
 final _scaffoldKey = GlobalKey<ScaffoldState>();
 
@@ -60,7 +64,7 @@ class _HomeShellState extends ConsumerState<HomeShell>
     // Siempre abre en Dashboard al entrar/re-entrar
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        ref.read(_sectionProvider.notifier).state = AppSection.dashboard;
+        ref.read(sectionProvider.notifier).state = AppSection.dashboard;
       }
     });
   }
@@ -75,10 +79,8 @@ class _HomeShellState extends ConsumerState<HomeShell>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused) {
-      // La app va a segundo plano → guarda la hora
       _pausedAt = DateTime.now();
     } else if (state == AppLifecycleState.resumed && _pausedAt != null) {
-      // La app vuelve → comprueba cuánto tiempo pasó
       final elapsed = DateTime.now().difference(_pausedAt!);
       _pausedAt = null;
       if (elapsed >= _timeout) _sessionExpired();
@@ -122,6 +124,7 @@ class _HomeShellState extends ConsumerState<HomeShell>
       case AppSection.deudas:        return const DeudasScreen();
       case AppSection.suscripciones: return const SuscripcionesScreen();
       case AppSection.resumen:       return const ResumenScreen();
+      case AppSection.compartido:    return const SharedSpaceScreen();
       case AppSection.config:        return const SettingsScreen();
     }
   }
@@ -129,9 +132,11 @@ class _HomeShellState extends ConsumerState<HomeShell>
   // ── Build ─────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
-    final section   = ref.watch(_sectionProvider);
-    final user      = ref.watch(currentUserProvider);
-    final themeMode = ref.watch(themeModeProvider);
+    final section       = ref.watch(sectionProvider);
+    final user          = ref.watch(currentUserProvider);
+    final themeMode     = ref.watch(themeModeProvider);
+    final contextName   = ref.watch(activeContextNameProvider);
+    final isShared      = ref.watch(activeSpaceProvider) != null;
 
     ref.listen(setupCompleteProvider, (_, next) {
       if (!_setupDialogShown && next.valueOrNull == false) {
@@ -145,7 +150,21 @@ class _HomeShellState extends ConsumerState<HomeShell>
     return Scaffold(
       key: _scaffoldKey,
       appBar: AppBar(
-        title: Text(section.title),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(section.title),
+            if (section != AppSection.compartido && section != AppSection.config)
+              Text(
+                isShared ? '👥 $contextName' : '👤 Personal',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: isShared ? AppColors.teal : AppColors.darkMuted,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+          ],
+        ),
         actions: [
           if (_showsMonthNav(section)) const MonthSelector(),
           IconButton(
@@ -170,9 +189,9 @@ class _HomeShellState extends ConsumerState<HomeShell>
               selectedIcon: Icon(Icons.home),
               label: 'Inicio'),
           NavigationDestination(
-              icon: Icon(Icons.south_west), label: 'Gastos'),
-          NavigationDestination(
               icon: Icon(Icons.north_east), label: 'Ingresos'),
+          NavigationDestination(
+              icon: Icon(Icons.south_west), label: 'Gastos'),
           NavigationDestination(
               icon: Icon(Icons.bar_chart_outlined),
               selectedIcon: Icon(Icons.bar_chart),
@@ -187,8 +206,8 @@ class _HomeShellState extends ConsumerState<HomeShell>
   int _barIndex(AppSection s) {
     switch (s) {
       case AppSection.dashboard: return 0;
-      case AppSection.gastos:    return 1;
-      case AppSection.ingresos:  return 2;
+      case AppSection.ingresos:  return 1;
+      case AppSection.gastos:    return 2;
       case AppSection.resumen:   return 3;
       default:                   return 4;
     }
@@ -197,13 +216,13 @@ class _HomeShellState extends ConsumerState<HomeShell>
   void _onBarTap(int i) {
     switch (i) {
       case 0:
-        ref.read(_sectionProvider.notifier).state = AppSection.dashboard;
+        ref.read(sectionProvider.notifier).state = AppSection.dashboard;
       case 1:
-        ref.read(_sectionProvider.notifier).state = AppSection.gastos;
+        ref.read(sectionProvider.notifier).state = AppSection.ingresos;
       case 2:
-        ref.read(_sectionProvider.notifier).state = AppSection.ingresos;
+        ref.read(sectionProvider.notifier).state = AppSection.gastos;
       case 3:
-        ref.read(_sectionProvider.notifier).state = AppSection.resumen;
+        ref.read(sectionProvider.notifier).state = AppSection.resumen;
       case 4:
         _scaffoldKey.currentState?.openDrawer();
     }
@@ -219,14 +238,18 @@ class _SetupDialogContent extends StatefulWidget {
 }
 
 class _SetupDialogContentState extends State<_SetupDialogContent> {
+  late final _nombre = TextEditingController(
+      text: widget.ref.read(currentUserProvider)?.displayName ?? '');
   final _saldo  = TextEditingController(text: '0');
   final _limite = TextEditingController(text: '2500');
   final _obj    = TextEditingController(text: '10000');
   final _aporte = TextEditingController(text: '300');
-  bool _saving  = false;
+  String _moneda = 'EUR';
+  bool _saving   = false;
 
   @override
   void dispose() {
+    _nombre.dispose();
     _saldo.dispose();
     _limite.dispose();
     _obj.dispose();
@@ -240,14 +263,22 @@ class _SetupDialogContentState extends State<_SetupDialogContent> {
   Future<void> _save() async {
     setState(() => _saving = true);
     try {
+      // 1. Marcar setup completo PRIMERO para que si userChanges() dispara
+      //    durante updateName, el stream ya lea true y no reabra el diálogo.
       await widget.ref.read(financeRepositoryProvider)!.completeSetup(
         UserConfig(
           saldoInicial:   _n(_saldo),
           limiteGasto:    _n(_limite),
           objetivoAhorro: _n(_obj),
           aporteMensual:  _n(_aporte),
+          moneda:         _moneda,
         ),
       );
+      // 2. Nombre después (puede disparar userChanges → recreación de providers)
+      final name = _nombre.text.trim();
+      if (name.isNotEmpty) {
+        await widget.ref.read(authControllerProvider.notifier).updateName(name);
+      }
       if (mounted) Navigator.pop(context);
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -277,10 +308,31 @@ class _SetupDialogContentState extends State<_SetupDialogContent> {
             style: TextStyle(color: AppColors.darkMuted, fontSize: 13),
           ),
           const SizedBox(height: 20),
-          _field('💰 Saldo actual (€)', _saldo),
-          _field('⚠️ Límite de gasto mensual (€)', _limite),
-          _field('🎯 Objetivo de ahorro (€)', _obj),
-          _field('💎 Aporte mensual de ahorro (€)', _aporte),
+          _field('👤 Tu nombre', _nombre, isText: true),
+          // Selector de moneda
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text('Moneda: ', style: TextStyle(fontSize: 13)),
+              SegmentedButton<String>(
+                segments: const [
+                  ButtonSegment(value: 'EUR', label: Text('€ EUR')),
+                  ButtonSegment(value: 'USD', label: Text('\$ USD')),
+                ],
+                selected: {_moneda},
+                onSelectionChanged: (s) => setState(() => _moneda = s.first),
+                style: const ButtonStyle(
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  visualDensity: VisualDensity.compact,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _field('💰 Saldo actual (${_moneda == "EUR" ? "€" : "\$"})', _saldo),
+          _field('⚠️ Límite de gasto mensual (${_moneda == "EUR" ? "€" : "\$"})', _limite),
+          _field('🎯 Objetivo de ahorro (${_moneda == "EUR" ? "€" : "\$"})', _obj),
+          _field('💎 Aporte mensual de ahorro (${_moneda == "EUR" ? "€" : "\$"})', _aporte),
           const SizedBox(height: 20),
           FilledButton(
             onPressed: _saving ? null : _save,
@@ -304,12 +356,14 @@ class _SetupDialogContentState extends State<_SetupDialogContent> {
     );
   }
 
-  Widget _field(String label, TextEditingController c) => Padding(
+  Widget _field(String label, TextEditingController c, {bool isText = false}) => Padding(
         padding: const EdgeInsets.only(bottom: 12),
         child: TextField(
           controller: c,
-          keyboardType:
-              const TextInputType.numberWithOptions(decimal: true),
+          keyboardType: isText
+              ? TextInputType.name
+              : const TextInputType.numberWithOptions(decimal: true),
+          textCapitalization: isText ? TextCapitalization.words : TextCapitalization.none,
           decoration: InputDecoration(labelText: label),
         ),
       );
@@ -322,12 +376,23 @@ class _SideMenu extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final current = ref.watch(_sectionProvider);
-    return NavigationDrawer(
+    final current     = ref.watch(sectionProvider);
+    final contextName = ref.watch(activeContextNameProvider);
+    final isShared    = ref.watch(activeSpaceProvider) != null;
+
+    // Secciones del menú lateral (excluye config que va aparte)
+    final mainSections = AppSection.values
+        .where((e) => e != AppSection.config)
+        .toList();
+
+    // Forzar tema oscuro dentro del drawer independientemente del tema de la app
+    return Theme(
+      data: AppTheme.dark,
+      child: NavigationDrawer(
       backgroundColor: AppColors.darkSidebar,
       selectedIndex: AppSection.values.indexOf(current),
       onDestinationSelected: (i) {
-        ref.read(_sectionProvider.notifier).state = AppSection.values[i];
+        ref.read(sectionProvider.notifier).state = AppSection.values[i];
         Navigator.pop(context);
       },
       children: [
@@ -349,23 +414,30 @@ class _SideMenu extends ConsumerWidget {
                 style: const TextStyle(
                     color: AppColors.darkMuted, fontSize: 12),
               ),
+              const SizedBox(height: 4),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: isShared
+                      ? AppColors.teal.withOpacity(0.15)
+                      : AppColors.darkBorder,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  isShared ? '👥 $contextName' : '👤 Personal',
+                  style: TextStyle(
+                    color: isShared ? AppColors.teal : AppColors.darkMuted,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
             ],
           ),
         ),
         const Divider(),
-        const Padding(
-          padding: EdgeInsets.fromLTRB(28, 8, 16, 8),
-          child: Text(
-            'PERSONAL',
-            style: TextStyle(
-                color: AppColors.darkMuted,
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.5),
-          ),
-        ),
-        for (final s
-            in AppSection.values.where((e) => e != AppSection.config))
+        for (final s in mainSections)
           NavigationDrawerDestination(
               icon: Icon(s.icon),
               selectedIcon: Icon(s.activeIcon),
@@ -390,6 +462,6 @@ class _SideMenu extends ConsumerWidget {
           ),
         ),
       ],
-    );
+    )); // Theme + NavigationDrawer
   }
 }

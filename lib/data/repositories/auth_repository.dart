@@ -20,7 +20,8 @@ class AuthRepository {
   final FirebaseFirestore _db;
   final GoogleSignIn _google;
 
-  Stream<User?> authState() => _auth.authStateChanges();
+  // userChanges() re-emite también cuando cambia displayName/photoURL
+  Stream<User?> authState() => _auth.userChanges();
   User? get currentUser => _auth.currentUser;
 
   AppUser? mapUser(User? u) {
@@ -66,6 +67,14 @@ class AuthRepository {
     await _auth.signOut();
   }
 
+  Future<void> updateDisplayName(String name) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    await user.updateDisplayName(name.trim());
+    await user.reload(); // dispara authStateChanges para actualizar currentUserProvider
+    await _db.collection('users').doc(user.uid).update({'displayName': name.trim()});
+  }
+
   Future<void> deleteAccount() async {
     final user = _auth.currentUser;
     if (user == null) return;
@@ -105,9 +114,34 @@ class AuthRepository {
       false;
 
   Future<void> _deleteUserData(String uid) async {
+    // 1. Salir de todos los espacios compartidos
+    final spacesSnap = await _db
+        .collection('shared_spaces')
+        .where('members', arrayContains: uid)
+        .get();
+    for (final spaceDoc in spacesSnap.docs) {
+      final members = List<String>.from(spaceDoc.data()['members'] as List? ?? []);
+      final remaining = members.where((m) => m != uid).toList();
+      if (remaining.isEmpty) {
+        // Último miembro: eliminar el espacio completo
+        for (final col in ['gastos','ingresos','ahorro','deudas','suscripciones','config']) {
+          final colSnap = await spaceDoc.reference.collection(col).get();
+          for (final d in colSnap.docs) await d.reference.delete();
+        }
+        await spaceDoc.reference.delete();
+      } else {
+        // Quedan otros miembros: solo quitar al usuario
+        await spaceDoc.reference.update({
+          'members': FieldValue.arrayRemove([uid]),
+          'memberNames.$uid': FieldValue.delete(),
+        });
+      }
+    }
+
+    // 2. Borrar datos personales
     final userRef = _db.collection('users').doc(uid);
     for (final col in
-        ['gastos','ingresos','ahorro','deudas','suscripciones','config']) {
+        ['gastos','ingresos','ahorro','deudas','suscripciones','config','shared_spaces']) {
       final snap = await userRef.collection(col).get();
       for (final doc in snap.docs) await doc.reference.delete();
     }

@@ -6,25 +6,19 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../data/models/deuda.dart';
 import '../../../shared/providers/finance_providers.dart';
-import '../../../shared/providers/shared_space_providers.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/kpi_card.dart';
-import '../../auth/providers/auth_providers.dart';
 
 class DeudasScreen extends ConsumerWidget {
   const DeudasScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final async    = ref.watch(deudasProvider);
-    final moneda = ref.watch(currencyProvider);
-    final personas = ref.watch(activeSpacePersonasProvider);
-    final myName   = ref.watch(currentUserProvider)?.displayName ?? '';
-
+    final async = ref.watch(deudasProvider);
     return Scaffold(
       backgroundColor: Colors.transparent,
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _openForm(context, ref, null, personas, myName),
+        onPressed: () => _openForm(context, ref, null),
         icon: const Icon(Icons.add),
         label: const Text('Nueva deuda'),
       ),
@@ -32,7 +26,7 @@ class DeudasScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Error: $e')),
         data: (list) {
-          final total  = list.fold<double>(0, (s, e) => s + e.total);
+          final total = list.fold<double>(0, (s, e) => s + e.total);
           final pagado = list.fold<double>(0, (s, e) => s + e.pagado);
           return ListView(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 90),
@@ -45,9 +39,9 @@ class DeudasScreen extends ConsumerWidget {
                 mainAxisSpacing: 10,
                 childAspectRatio: 1.0,
                 children: [
-                  KpiCard(label: '💳 Total', value: Fmt.money(total, moneda: moneda), accent: AppColors.red),
-                  KpiCard(label: '✅ Pagado', value: Fmt.money(pagado, moneda: moneda), accent: AppColors.green),
-                  KpiCard(label: '⏳ Pendiente', value: Fmt.money(total - pagado, moneda: moneda), accent: AppColors.yellow),
+                  KpiCard(label: '💳 Total', value: Fmt.money(total), accent: AppColors.red),
+                  KpiCard(label: '✅ Pagado', value: Fmt.money(pagado), accent: AppColors.green),
+                  KpiCard(label: '⏳ Pendiente', value: Fmt.money(total - pagado), accent: AppColors.yellow),
                 ],
               ),
               const SizedBox(height: 16),
@@ -58,7 +52,7 @@ class DeudasScreen extends ConsumerWidget {
                   Card(
                     margin: const EdgeInsets.only(bottom: 10),
                     child: InkWell(
-                      onTap: () => _openForm(context, ref, d, personas, myName),
+                      onTap: () => _openForm(context, ref, d),
                       child: Padding(
                         padding: const EdgeInsets.all(14),
                         child: Column(
@@ -70,20 +64,11 @@ class DeudasScreen extends ConsumerWidget {
                                   child: Text(d.descripcion,
                                       style: const TextStyle(fontWeight: FontWeight.w600)),
                                 ),
-                                if (personas.isNotEmpty)
-                                  Padding(
-                                    padding: const EdgeInsets.only(right: 4),
-                                    child: Text(
-                                      _resolvePersona(d.persona, myName),
-                                      style: const TextStyle(
-                                          fontSize: 11, color: AppColors.darkMuted),
-                                    ),
-                                  ),
                                 IconButton(
                                     icon: const Icon(Icons.delete_outline,
                                         size: 20, color: AppColors.darkMuted),
                                     onPressed: () => ref
-                                        .read(activeFinanceRepositoryProvider)!
+                                        .read(financeRepositoryProvider)!
                                         .deleteDeuda(d.id)),
                               ],
                             ),
@@ -97,7 +82,7 @@ class DeudasScreen extends ConsumerWidget {
                             ),
                             const SizedBox(height: 6),
                             Text(
-                                '${Fmt.money(d.pagado, moneda: moneda)} / ${Fmt.money(d.total, moneda: moneda)} · pendiente ${Fmt.money(d.pendiente, moneda: moneda)}'
+                                '${Fmt.money(d.pagado)} / ${Fmt.money(d.total)} · pendiente ${Fmt.money(d.pendiente)}'
                                 '${d.vencimiento != null ? ' · vence ${Fmt.date(d.vencimiento!)}' : ''}',
                                 style: const TextStyle(fontSize: 11, color: AppColors.darkMuted)),
                           ],
@@ -112,21 +97,12 @@ class DeudasScreen extends ConsumerWidget {
     );
   }
 
-  String _resolvePersona(String persona, String myName) {
-    if (myName.isNotEmpty && persona == myName) return 'Yo';
-    return persona;
-  }
-
-  void _openForm(BuildContext context, WidgetRef ref, Deuda? deuda,
-      List<String> personas, String myName) {
+  void _openForm(BuildContext context, WidgetRef ref, Deuda? deuda) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       builder: (_) => _DeudaForm(
         deuda: deuda,
-        personas: personas,
-        myDisplayName: myName,
-        moneda: ref.read(currencyProvider),
         onSubmit: (d) => deuda == null
             ? ref.read(activeFinanceRepositoryProvider)!.addDeuda(d)
             : ref.read(activeFinanceRepositoryProvider)!.updateDeuda(d),
@@ -136,42 +112,30 @@ class DeudasScreen extends ConsumerWidget {
 }
 
 class _DeudaForm extends StatefulWidget {
-  const _DeudaForm(
-      {required this.onSubmit,
-      this.deuda,
-      required this.personas,
-      required this.myDisplayName,
-      required this.moneda});
+  const _DeudaForm({required this.onSubmit, this.deuda});
   final Future<void> Function(Deuda) onSubmit;
   final Deuda? deuda;
-  final List<String> personas;
-  final String myDisplayName;
-  final String moneda;
   @override
   State<_DeudaForm> createState() => _DeudaFormState();
 }
 
 class _DeudaFormState extends State<_DeudaForm> {
-  final _form   = GlobalKey<FormState>();
-  late final _desc   = TextEditingController(text: widget.deuda?.descripcion ?? '');
-  late final _total  = TextEditingController(
+  final _form = GlobalKey<FormState>();
+  late final _desc = TextEditingController(text: widget.deuda?.descripcion ?? '');
+  late final _total = TextEditingController(
       text: widget.deuda != null ? widget.deuda!.total.toStringAsFixed(2) : '');
   late final _pagado = TextEditingController(
       text: widget.deuda != null ? widget.deuda!.pagado.toStringAsFixed(2) : '0');
-  late DateTime? _venc   = widget.deuda?.vencimiento;
-  late String    _persona = _initPersona();
-
-  String _initPersona() {
-    if (widget.personas.isEmpty) return FinanceConstants.personasBase.first;
-    final saved = widget.deuda?.persona ?? '';
-    if (saved.isEmpty) return 'Yo';
-    if (widget.myDisplayName.isNotEmpty && saved == widget.myDisplayName) return 'Yo';
-    if (widget.personas.contains(saved)) return saved;
-    return 'Yo';
-  }
+  late DateTime? _venc = widget.deuda?.vencimiento;
+  late String _persona = widget.deuda?.persona ?? FinanceConstants.personasBase.first;
 
   @override
-  void dispose() { _desc.dispose(); _total.dispose(); _pagado.dispose(); super.dispose(); }
+  void dispose() {
+    _desc.dispose();
+    _total.dispose();
+    _pagado.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -192,35 +156,35 @@ class _DeudaFormState extends State<_DeudaForm> {
               TextFormField(
                 controller: _desc,
                 decoration: const InputDecoration(labelText: 'Descripción'),
-                validator: (v) => (v == null || v.trim().isEmpty) ? 'Requerido' : null,
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Requerido' : null,
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _total,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: InputDecoration(labelText: widget.moneda == 'USD' ? 'Total (\$)' : 'Total (€)'),
+                decoration: const InputDecoration(labelText: 'Total (€)'),
                 validator: (v) =>
                     double.tryParse((v ?? '').replaceAll(',', '.')) == null
-                        ? 'Número no válido' : null,
+                        ? 'Número no válido'
+                        : null,
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _pagado,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: InputDecoration(labelText: widget.moneda == 'USD' ? 'Ya pagado (\$)' : 'Ya pagado (€)'),
+                decoration: const InputDecoration(labelText: 'Ya pagado (€)'),
               ),
-              if (widget.personas.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  value: _persona,
-                  isExpanded: true,
-                  decoration: const InputDecoration(labelText: 'Persona'),
-                  items: widget.personas
-                      .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                      .toList(),
-                  onChanged: (v) => setState(() => _persona = v ?? _persona),
-                ),
-              ],
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: _persona,
+                isExpanded: true,
+                decoration: const InputDecoration(labelText: 'Persona'),
+                items: FinanceConstants.personasBase
+                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                    .toList(),
+                onChanged: (v) => setState(() => _persona = v ?? _persona),
+              ),
               const SizedBox(height: 12),
               ListTile(
                 contentPadding: EdgeInsets.zero,
@@ -240,16 +204,13 @@ class _DeudaFormState extends State<_DeudaForm> {
               FilledButton(
                 onPressed: () async {
                   if (!_form.currentState!.validate()) return;
-                  final personaFinal = (widget.personas.isNotEmpty && _persona == 'Yo')
-                      ? (widget.myDisplayName.isNotEmpty ? widget.myDisplayName : 'Yo')
-                      : _persona;
                   await widget.onSubmit(Deuda(
                     id: widget.deuda?.id ?? '',
                     descripcion: _desc.text.trim(),
                     total: double.parse(_total.text.replaceAll(',', '.')),
                     pagado: double.tryParse(_pagado.text.replaceAll(',', '.')) ?? 0,
                     vencimiento: _venc,
-                    persona: personaFinal,
+                    persona: _persona,
                   ));
                   if (mounted) Navigator.pop(context);
                 },

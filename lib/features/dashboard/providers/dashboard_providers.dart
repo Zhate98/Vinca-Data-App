@@ -40,7 +40,9 @@ class DashboardData {
 }
 
 /// Combina todos los streams para calcular el dashboard del mes seleccionado.
-final dashboardProvider = Provider.autoDispose<AsyncValue<DashboardData>>((ref) {
+/// Sin autoDispose: se mantiene vivo entre pantallas para que config y transacciones
+/// se reflejen inmediatamente al volver al dashboard.
+final dashboardProvider = Provider<AsyncValue<DashboardData>>((ref) {
   final gastosMes = ref.watch(gastosMesProvider);
   final ingresosMes = ref.watch(ingresosMesProvider);
   final gastosAll = ref.watch(gastosTodosProvider);
@@ -110,7 +112,7 @@ final dashboardProvider = Provider.autoDispose<AsyncValue<DashboardData>>((ref) 
 });
 
 // Pequeño provider auxiliar para acceder a (month, year) como tupla.
-final _monthRefProvider = Provider.autoDispose<(int, int)>((ref) {
+final _monthRefProvider = Provider<(int, int)>((ref) {
   final m = ref.watch(selectedMonthProvider);
   return (m.month, m.year);
 });

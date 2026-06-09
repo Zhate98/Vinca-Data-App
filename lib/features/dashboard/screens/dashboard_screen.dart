@@ -8,6 +8,7 @@ import '../../../shared/widgets/section_card.dart';
 import '../providers/dashboard_providers.dart';
 import '../widgets/category_donut.dart';
 import '../widgets/evolution_chart.dart';
+import '../../../shared/providers/finance_providers.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -15,6 +16,7 @@ class DashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(dashboardProvider);
+    final moneda = ref.watch(currencyProvider);
 
     return async.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -33,28 +35,28 @@ class DashboardScreen extends ConsumerWidget {
             children: [
               KpiCard(
                   label: '💰 Saldo actual',
-                  value: Fmt.money(d.saldoActual),
+                  value: Fmt.money(d.saldoActual, moneda: moneda),
                   accent: AppColors.teal),
               KpiCard(
                   label: '📥 Ingresos mes',
-                  value: Fmt.money(d.ingresosMes),
+                  value: Fmt.money(d.ingresosMes, moneda: moneda),
                   accent: AppColors.green),
               KpiCard(
                   label: '📤 Gastos mes',
-                  value: Fmt.money(d.gastosMes),
+                  value: Fmt.money(d.gastosMes, moneda: moneda),
                   accent: AppColors.red),
               KpiCard(
                   label: '🏦 Total ahorrado',
-                  value: Fmt.money(d.ahorroTotal),
+                  value: Fmt.money(d.ahorroTotal, moneda: moneda),
                   accent: AppColors.blue),
               KpiCard(
                   label: '📊 Balance del mes',
-                  value: Fmt.money(d.balanceMes),
+                  value: Fmt.money(d.balanceMes, moneda: moneda),
                   accent: d.balanceMes >= 0 ? AppColors.green : AppColors.red),
               KpiCard(
                   label: '🎯 Meta de ahorro',
                   value: '${(d.pctAhorro * 100).round()}%',
-                  sub: 'Falta ${Fmt.money(d.faltaAhorro)}',
+                  sub: 'Falta ${Fmt.money(d.faltaAhorro, moneda: moneda)}',
                   accent: AppColors.purple),
             ],
           ),
@@ -62,7 +64,7 @@ class DashboardScreen extends ConsumerWidget {
 
           // ── Gasto vs límite ─────────────────────────────────────────────
           SectionCard(
-            title: '⚠️ Gasto vs límite (${Fmt.money(d.limite)})',
+            title: '⚠️ Gasto vs límite (${Fmt.money(d.limite, moneda: moneda)})',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -76,7 +78,7 @@ class DashboardScreen extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 6),
-                Text('${Fmt.money(d.gastosMes)} de ${Fmt.money(d.limite)}',
+                Text('${Fmt.money(d.gastosMes, moneda: moneda)} de ${Fmt.money(d.limite, moneda: moneda)}',
                     style: const TextStyle(
                         fontSize: 11, color: AppColors.darkMuted)),
               ],

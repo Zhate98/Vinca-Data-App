@@ -51,10 +51,18 @@ class FinanceConstants {
   static const List<String> renovaciones = ['Mensual', 'Trimestral', 'Anual'];
 
   // Claves de configuración (tabla `config` en la web).
-  static const String kSaldoInicial = 'saldo_inicial';
-  static const String kLimiteGasto = 'limite_gasto';
+  static const String kSaldoInicial  = 'saldo_inicial';
+  static const String kLimiteGasto   = 'limite_gasto';
   static const String kObjetivoAhorro = 'objetivo_ahorro';
-  static const String kAporteMensual = 'aporte_mensual';
+  static const String kAporteMensual  = 'aporte_mensual';
+  static const String kMoneda         = 'moneda';
+
+  /// Monedas disponibles con su símbolo.
+  static const List<String> monedas = ['EUR', 'USD'];
+  static const Map<String, String> simbolos = {
+    'EUR': '€',
+    'USD': '\$',
+  };
 
   static const Map<String, double> configDefaults = {
     kSaldoInicial: 000,

@@ -41,6 +41,7 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
       _run(() => _repo.registerWithEmail(email, pass, name));
   Future<bool> reset(String email) =>
       _run(() => _repo.sendPasswordReset(email));
+  Future<bool> updateName(String name) => _run(() => _repo.updateDisplayName(name));
   Future<void> signOut() => _repo.signOut();
   Future<void> deleteAccount() => _run(_repo.deleteAccount);
   Future<bool> reauthWithEmail(String password) =>

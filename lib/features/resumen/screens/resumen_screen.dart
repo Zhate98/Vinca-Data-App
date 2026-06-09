@@ -16,6 +16,7 @@ class ResumenScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final year = ref.watch(_resumenYearProvider);
+    final moneda = ref.watch(currencyProvider);
     final gastos = ref.watch(gastosTodosProvider);
     final ingresos = ref.watch(ingresosTodosProvider);
     final ahorros = ref.watch(ahorrosProvider);
@@ -103,13 +104,13 @@ class ResumenScreen extends ConsumerWidget {
                 for (final r in rows)
                   DataRow(cells: [
                     DataCell(Text(Fmt.meses[r.$1 - 1])),
-                    DataCell(Text(Fmt.money(r.$2),
+                    DataCell(Text(Fmt.money(r.$2, moneda: moneda),
                         style: const TextStyle(color: AppColors.green))),
-                    DataCell(Text(Fmt.money(r.$3),
+                    DataCell(Text(Fmt.money(r.$3, moneda: moneda),
                         style: const TextStyle(color: AppColors.red))),
-                    DataCell(Text(Fmt.money(r.$4),
+                    DataCell(Text(Fmt.money(r.$4, moneda: moneda),
                         style: const TextStyle(color: AppColors.blue))),
-                    DataCell(Text(Fmt.money(r.$5),
+                    DataCell(Text(Fmt.money(r.$5, moneda: moneda),
                         style: TextStyle(
                             color: r.$5 >= 0 ? AppColors.green : AppColors.red,
                             fontWeight: FontWeight.w700))),
@@ -142,7 +143,7 @@ class ResumenScreen extends ConsumerWidget {
                                     fontWeight: FontWeight.w700)),
                             const SizedBox(width: 8),
                             Expanded(child: Text(rankSorted[i].key)),
-                            Text(Fmt.money(rankSorted[i].value),
+                            Text(Fmt.money(rankSorted[i].value, moneda: moneda),
                                 style: const TextStyle(
                                     fontWeight: FontWeight.w700)),
                           ],

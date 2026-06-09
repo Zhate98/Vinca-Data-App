@@ -9,13 +9,31 @@ import '../models/user_config.dart';
 
 class FinanceRepository {
   FinanceRepository(this._uid, {FirebaseFirestore? firestore})
-      : _db = firestore ?? FirebaseFirestore.instance;
+      : _db = firestore ?? FirebaseFirestore.instance,
+        _isShared = false,
+        _spaceId = null,
+        _personalUid = null;
+
+  /// Constructor para espacios compartidos
+  FinanceRepository.shared(String spaceId, {FirebaseFirestore? firestore, required String uid})
+      : _db = firestore ?? FirebaseFirestore.instance,
+        _uid = uid,
+        _isShared = true,
+        _spaceId = spaceId,
+        _personalUid = uid;
 
   final String _uid;
   final FirebaseFirestore _db;
+  final bool _isShared;
+  final String? _spaceId;
+  final String? _personalUid;
 
-  CollectionReference<Map<String, dynamic>> _col(String name) =>
-      _db.collection('users').doc(_uid).collection(name);
+  CollectionReference<Map<String, dynamic>> _col(String name) {
+    if (_isShared) {
+      return _db.collection('shared_spaces').doc(_spaceId).collection(name);
+    }
+    return _db.collection('users').doc(_uid).collection(name);
+  }
 
   // ── GASTOS ──────────────────────────────────────────────────────────────
   Stream<List<Gasto>> gastosDelMes(int month, int year) {
@@ -88,17 +106,66 @@ class FinanceRepository {
   Future<void> saveConfig(UserConfig c) =>
       _configRef.set(c.toMap(), SetOptions(merge: true));
 
-  // ── SETUP (primera vez) ───────────────────────────────────────────────────
-  Stream<bool> setupComplete() => _db
-      .collection('users')
-      .doc(_uid)
-      .snapshots()
-      .map((s) => (s.data()?['setupComplete'] as bool?) ?? true);
+  /// Renombra el campo `persona` en todas las colecciones del contexto actual.
+  /// Solo relevante en espacios compartidos (en personal se usan "Yo"/"Pareja"/etc.)
+  Future<void> renamePersona(String oldName, String newName) async {
+    if (oldName.isEmpty || newName.isEmpty || oldName == newName) return;
+
+    for (final colName in ['gastos', 'ingresos', 'ahorro', 'deudas', 'suscripciones']) {
+      final snap = await _col(colName)
+          .where('persona', isEqualTo: oldName)
+          .get();
+      if (snap.docs.isEmpty) continue;
+
+      WriteBatch batch = _db.batch();
+      int count = 0;
+      for (final doc in snap.docs) {
+        batch.update(doc.reference, {'persona': newName});
+        count++;
+        if (count >= 499) {
+          await batch.commit();
+          batch = _db.batch();
+          count = 0;
+        }
+      }
+      if (count > 0) await batch.commit();
+    }
+  }
+
+  /// Devuelve los valores de `persona` que existen en las transacciones pero
+  /// ya no coinciden con ningún nombre activo en el espacio (nombres huérfanos).
+  /// Útil para detectar y corregir nombres desactualizados.
+  Future<Set<String>> findOrphanedPersonas(List<String> currentMemberNames) async {
+    final orphaned = <String>{};
+    for (final colName in ['gastos', 'ingresos', 'ahorro', 'deudas', 'suscripciones']) {
+      final snap = await _col(colName).get();
+      for (final doc in snap.docs) {
+        final persona = (doc.data()['persona'] as String?) ?? '';
+        if (persona.isNotEmpty && !currentMemberNames.contains(persona)) {
+          orphaned.add(persona);
+        }
+      }
+    }
+    return orphaned;
+  }
+
+  // ── SETUP (primera vez) — solo para contexto personal ────────────────────
+  Stream<bool> setupComplete() {
+    final uid = _personalUid ?? _uid;
+    return _db
+        .collection('users')
+        .doc(uid)
+        .snapshots()
+        .map((s) => (s.data()?['setupComplete'] as bool?) ?? true);
+  }
 
   Future<void> completeSetup(UserConfig config) async {
+    final uid = _personalUid ?? _uid;
+    // Marcar primero para que si userChanges() dispara entre medio,
+    // el stream ya lea true y no vuelva a mostrar el diálogo.
+    await _db.collection('users').doc(uid)
+        .set({'setupComplete': true}, SetOptions(merge: true));
     await saveConfig(config);
-    await _db.collection('users').doc(_uid)
-        .update({'setupComplete': true});
   }
 
   static String _ym(DateTime d) =>
